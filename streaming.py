@@ -38,13 +38,13 @@ async def search(query:str) -> str:
     """Smart and effecient searching function"""
     print("Searching for query ->",query)
     response = await tavily_client.search(query)
-    print('RESPONSE -->',response)
+    # print('RESPONSE -->',response)
     return response
 
 @function_tool
 async def extract_content(urls: list) -> dict:
     """An extracting urls function"""
-    print('URLS -->',urls)
+    # print('URLS -->',urls)
     response = tavily_client.extract(urls)
     return response
 
@@ -101,7 +101,7 @@ async def main():
     # ----------- RUNNER ----------- #
     result = Runner.run_streamed(
         research_team,
-        "What is renewable energy?"
+        "What are pros and cons of electric cars?"
     )
     async for event in result.stream_events():
         if event.type == "raw_response_event" and isinstance(event.data, ResponseTextDeltaEvent):
