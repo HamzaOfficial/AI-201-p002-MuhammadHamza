@@ -56,61 +56,64 @@ def filter_customers_manual(query: str, records: list, fields: list[str] = ("cus
 def fetch_customer_data_tool() -> list:
     return fetch_customer_data()
 
-# @function_tool
-# def plot_customers(query: str, records: list) -> str:
-#     """
-#     Generate a bar chart of customers count per region or other criteria.
-#     Returns a base64 image string so it can be displayed.
-#     """
+@function_tool
+def plot_customers(query: str, records: list):
+    """
+    Generate a chart based on query.
+    Returns a base64 image string so it can be displayed in the result.
+    """
+    print('\n\nBefore\n\n')
+    print('Query ---> ',query,'\n','Records',records)
+    # Region-wise count
+    region_counts = {}
+    for r in records:
+        region = r.get("city", "Unknown")
+        region_counts[region] = region_counts.get(region, 0) + 1
 
-#     # Region-wise count
+    # Plot
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.bar(region_counts.keys(), region_counts.values(), color="skyblue")
+    ax.set_title("Customer Count per Region")
+    ax.set_xlabel("Region")
+    ax.set_ylabel("Number of Customers")
+    plt.xticks(rotation=45)
+
+    # Convert to base64 for return
+    # buf = io.BytesIO()
+    plt.tight_layout()
+    # plt.savefig(buf, format="png")
+    # buf.seek(0)
+    # img_base64 = base64.b64encode(buf.read()).decode("utf-8")
+    # plt.close(fig)
+    print('\n\nAfter\n\n')
+    print('Query ---> ',query,'\nRecords',records,'\nFIGURE ---> ',fig)
+    return fig
+
+# @function_tool
+# def plot_customers(query: str, records: list):
+#     """
+#     Generate a bar chart of customers count per region.
+#     Returns a Plotly figure object.
+#     """
+#     import plotly.express as px
+#     import pandas as pd
+    
 #     region_counts = {}
 #     for r in records:
 #         region = r.get("region", "Unknown")
 #         region_counts[region] = region_counts.get(region, 0) + 1
 
-#     # Plot
-#     fig, ax = plt.subplots(figsize=(6, 4))
-#     ax.bar(region_counts.keys(), region_counts.values(), color="skyblue")
-#     ax.set_title("Customer Count per Region")
-#     ax.set_xlabel("Region")
-#     ax.set_ylabel("Number of Customers")
-#     plt.xticks(rotation=45)
-
-#     # Convert to base64 for return
-#     # buf = io.BytesIO()
-#     plt.tight_layout()
-#     # plt.savefig(buf, format="png")
-#     # buf.seek(0)
-#     # img_base64 = base64.b64encode(buf.read()).decode("utf-8")
-#     # plt.close(fig)
+#     df = pd.DataFrame({
+#         'Region': list(region_counts.keys()),
+#         'Count': list(region_counts.values())
+#     })
+    
+#     fig = px.bar(df, x='Region', y='Count', 
+#                  title='Customer Count per Region',
+#                  color='Count', color_continuous_scale='blues')
+#     fig.update_layout(xaxis_tickangle=-45)
+    
 #     return fig
-
-@function_tool
-def plot_customers(query: str, records: list):
-    """
-    Generate a bar chart of customers count per region.
-    Returns a Plotly figure object.
-    """
-    import plotly.express as px
-    import pandas as pd
-    
-    region_counts = {}
-    for r in records:
-        region = r.get("region", "Unknown")
-        region_counts[region] = region_counts.get(region, 0) + 1
-
-    df = pd.DataFrame({
-        'Region': list(region_counts.keys()),
-        'Count': list(region_counts.values())
-    })
-    
-    fig = px.bar(df, x='Region', y='Count', 
-                 title='Customer Count per Region',
-                 color='Count', color_continuous_scale='blues')
-    fig.update_layout(xaxis_tickangle=-45)
-    
-    return fig
 
 @function_tool
 def count_customers(query: str, records: list) -> dict:
@@ -132,7 +135,7 @@ customer_agent: Agent = Agent(
     name="Customer Agent",
     instructions=(
         "You are a customer-data specialist. "
-        "If the query asks about visualization, charts, or graphs, call `plot_customers`. "
+        "If the query asks about visualization, charts, or graphs, call `plot_customers`. and take figure to display in the result"
         "If it's about counting, call `count_customers`. "
         "If it's about filtering, call `filter_customer_records`. "
         "Always use `fetch_customer_data_tool` first to get records."
@@ -142,6 +145,7 @@ customer_agent: Agent = Agent(
 )
 async def run_agentic_query():
     result = await Runner.run(customer_agent, query)
+    print('\n\nRunner loop result --> ',result)
     return result.final_output
 
 # -------- Streamlit UI --------
@@ -167,10 +171,14 @@ if st.button("Run Query"):
 
     st.subheader("🔍 Agent Output")
     if isinstance(result, plt.Figure):
+        print('01 --> ',result)
         st.pyplot(result, use_container_width=True)  # Added use_container_width
     elif hasattr(result, '__class__') and 'plotly' in str(type(result)):
+        print('02 --> ',result)
         st.plotly_chart(result, use_container_width=True)
     elif isinstance(result, list):
         st.dataframe(result, use_container_width=True)
     else:
+        print('03 --> ',result)
+        st.pyplot(result)
         st.write(result)
