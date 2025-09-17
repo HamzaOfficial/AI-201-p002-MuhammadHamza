@@ -6,6 +6,7 @@ import re
 from dotenv import load_dotenv
 from agents import Agent, Runner, OpenAIChatCompletionsModel, AsyncOpenAI, set_tracing_disabled, function_tool
 import tempfile
+import pandas as pd
 from PIL import Image
 
 # Load environment variables
@@ -22,17 +23,18 @@ external_client = AsyncOpenAI(api_key=GEMINI_API_KEY, base_url=BASE_URL)
 llm_model = OpenAIChatCompletionsModel(model="gemini-2.5-flash", openai_client=external_client)
 
 def fetch_customer_data(filters=None):
+    df = pd.read_csv("customers_data.csv")
     DATA = [
-    {"user_id": 1001, "name": "ZUBAIR HASSAN (B12,COLONY3 CHAKLALA GARRISON RAWALPINDI)", "cus_id": "83907", "email": "ali.ahmed@email.com", "phone": "0300-1234567", "city": "Lahore"},
-    {"user_id": 1002, "name": "(FWO) PD HQ NBBIAP", "cus_id": "88594", "email": "fatima.khan@email.com", "phone": "0312-9876543", "city": "Karachi"},
-    {"user_id": 1003, "name": "156 INDEPENDENT INFANTRY WORKSHOP COMPANY", "cus_id": "81155", "email": "usman.malik@email.com", "phone": "0333-4567890", "city": "Islamabad"},
-    {"user_id": 1004, "name": "1st for Connect Pvt Ltd", "cus_id": "83025", "email": "ayesha.raza@email.com", "phone": "0345-1122334", "city": "Rawalpindi"},
-    {"user_id": 1005, "name": "3G TECHNOLOGIES (GURANTEE) LIMITED", "cus_id": "82989", "email": "bilal.hassan@email.com", "phone": "0321-5566778", "city": "Faisalabad"},
-    {"user_id": 1006, "name": "4 B INDUSTRIES", "cus_id": "99336", "email": "sanaullah@email.com", "phone": "0301-9988776", "city": "Sialkot"},
-    {"user_id": 1007, "name": "4W Technologies (Pvt) Ltd", "cus_id": "81033", "email": "zainab.akhtar@email.com", "phone": "0335-4433221", "city": "Quetta"},
-    {"user_id": 1008, "name": "A & Z OILS PVT. LTD.", "cus_id": "81626", "email": "imran.siddiqui@email.com", "phone": "0314-7778889", "city": "Multan"},
-    {"user_id": 1009, "name": "Hina Sheikh", "cus_id": "82620", "email": "hina.sheikh@email.com", "phone": "0322-6543210", "city": "Sialkot"},
-    {"user_id": 1010, "name": "A A BROTHER", "cus_id": "88737", "email": "omar.farooq@email.com", "phone": "0305-1357924", "city": "Sialkot"}
+    {"user_id": 1001, "name": "ZUBAIR HASSAN (B12,COLONY3 CHAKLALA GARRISON RAWALPINDI)", "cus_id": "83907", "email": "ali.ahmed@email.com", "phone": "0300-1234567", "region": "Lahore"},
+    {"user_id": 1002, "name": "(FWO) PD HQ NBBIAP", "cus_id": "88594", "email": "fatima.khan@email.com", "phone": "0312-9876543", "region": "Karachi"},
+    {"user_id": 1003, "name": "156 INDEPENDENT INFANTRY WORKSHOP COMPANY", "cus_id": "81155", "email": "usman.malik@email.com", "phone": "0333-4567890", "region": "Islamabad"},
+    {"user_id": 1004, "name": "1st for Connect Pvt Ltd", "cus_id": "83025", "email": "ayesha.raza@email.com", "phone": "0345-1122334", "region": "Karachi"},
+    {"user_id": 1005, "name": "3G TECHNOLOGIES (GURANTEE) LIMITED", "cus_id": "82989", "email": "bilal.hassan@email.com", "phone": "0321-5566778", "region": "Multan"},
+    {"user_id": 1006, "name": "4 B INDUSTRIES", "cus_id": "99336", "email": "sanaullah@email.com", "phone": "0301-9988776", "region": "Karachi"},
+    {"user_id": 1007, "name": "4W Technologies (Pvt) Ltd", "cus_id": "81033", "email": "zainab.akhtar@email.com", "phone": "0335-4433221", "region": "Islamabad"},
+    {"user_id": 1008, "name": "A & Z OILS PVT. LTD.", "cus_id": "81626", "email": "imran.siddiqui@email.com", "phone": "0314-7778889", "region": "Multan"},
+    {"user_id": 1009, "name": "Hina Sheikh", "cus_id": "82620", "email": "hina.sheikh@email.com", "phone": "0322-6543210", "region": "Lahore"},
+    {"user_id": 1010, "name": "A A BROTHER", "cus_id": "88737", "email": "omar.farooq@email.com", "phone": "0305-1357924", "region": "Lahore"}
     ]
     return DATA
 
@@ -98,7 +100,7 @@ def count_customers(query: str, records: list) -> dict:
 
     filtered = records
     if region:
-        filtered = [r for r in records if region.lower() in str(r.get("city","")).lower()]
+        filtered = [r for r in records if region.lower() in str(r.get("region","")).lower()]
 
     return {
         "total": len(filtered),
@@ -109,9 +111,9 @@ def count_customers(query: str, records: list) -> dict:
 def filter_customer_records(
     query: str,
     records: list,
-    fields: list[str] = ("cus_id","name","city","phone")
+    fields: list[str] = ("cus_id","name","region","phone")
 ) -> list:
-    """Filter customer records based on query (cus_id, name, city)"""
+    """Filter customer records based on query (cus_id, name, region,email,phone,mobile)"""
     # Use the manual function to avoid code duplication
     return filter_customers_manual(query, records, fields)
 
@@ -153,8 +155,8 @@ def visualize_customer_data(query: str, records: list) -> str:
     
     # If no explicit column mentioned, use intelligent detection
     if not column_to_visualize:
-        if "city" in available_columns and ("city" in query_lower or "location" in query_lower or "region" in query_lower):
-            column_to_visualize = "city"
+        if "region" in available_columns and ("region" in query_lower or "location" in query_lower or "region" in query_lower):
+            column_to_visualize = "region"
         elif "name" in available_columns and ("name" in query_lower or "customer" in query_lower):
             column_to_visualize = "name"
         elif "id" in available_columns and ("id" in query_lower or "number" in query_lower):
@@ -278,7 +280,7 @@ for message in st.session_state.messages:
 
 
 # Accept user input
-if prompt := st.chat_input("Ask about customer data (e.g., 'Show me customers from Sialkot', 'Create a bar chart of customers by city')"):
+if prompt := st.chat_input("Ask about customer data (e.g., 'Show me customers from Sialkot', 'Create a bar chart of customers by region')"):
     # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": prompt, "type": "text"})
     
@@ -350,7 +352,7 @@ with st.sidebar:
     st.markdown("""
     - "Show me customers from Sialkot"
     - "How many customers are in Karachi?"
-    - "Create a bar chart of customers by city"
+    - "Create a bar chart of customers by region"
     - "Show me a pie chart of customer distribution"
     - "Filter customers with ID 83907"
     """)
